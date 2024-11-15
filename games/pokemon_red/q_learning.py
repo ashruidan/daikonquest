@@ -39,6 +39,8 @@ class Custom:
         battle_x = mem[0xCC25]
         battle_select = mem[0xCC26]
 
+        self.overworld = pos_map < 15
+
         self.pbattle = self.battle
         self.battle = (battle_type, battle_x, battle_select)
 
@@ -68,9 +70,9 @@ class Custom:
             reward += 1000
         pe,py,px = self.previous
         if (e,y,x) == (pe,py,px) and p_a != 'a':
-            reward -= 1
+            reward -= 10
         current_distance = abs(self.checkpoint[0] - self.breadcrumb[0]) + abs(self.checkpoint[1] - self.breadcrumb[1])
-        if current_distance > self.distance:
+        if current_distance > self.distance and self.overworld:
             self.distance = current_distance
             self.breadcrumb = (y,x)
             self.last = state
@@ -103,7 +105,7 @@ class Custom:
         if type == 2:
             return Actions.A.value
         if type == 1:
-            flag = self.battle == self.pbattle and a == Actions.DOWN.value
+            flag = self.battle == self.pbattle and a != None and a == Actions.DOWN.value
             if (x,select) == (9,1):
                 action = Actions.RIGHT.value
             elif (x,select) == (15,1) or flag:

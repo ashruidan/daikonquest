@@ -57,6 +57,6 @@ class Algorithm:
                 value = np.argmax(self.Q[state]) + done * 10000
             else:
                 a = self.actions.index(action)
-                self.Q[state][a] += 0.8 * value
+                self.Q[state][a] += 0.1 * value
                 value = self.Q[state][a]
         self.history.clear()
