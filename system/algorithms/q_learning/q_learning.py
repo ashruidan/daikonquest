@@ -16,9 +16,9 @@ class Algorithm:
         p_s,p_a = self.history[-1]
         lr = 0.8 - 0.7 * min(1,-2*ratio+2)
         g = 0.9
-        print(self.Q)
         action = np.argmax(self.Q[state])
-        self.Q[p_s][p_a] += lr * (r + g * action - self.Q[p_s][p_a])
+        a = self.actions.index(p_a)
+        self.Q[p_s][a] += lr * (reward + g * action - self.Q[p_s][a])
 
     def step(self, data):
         state, _, actions, _, epsilon,_ = data

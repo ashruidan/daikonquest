@@ -66,6 +66,14 @@ class Environment:
         self.emulator.button_release(input)
         self.emulator.tick(2)
 
+    def batch(self):
+        batch_size = 100
+        episode = 0
+        while episode < batch_size:
+            self.episode()
+            load(start_save, "rb", self.emulator.load_state)
+            episode += 1
+
     def episode(self):
         episode_size = 25000
         step = 0
