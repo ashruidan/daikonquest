@@ -76,7 +76,7 @@ class Environment:
             episode += 1
 
     def episode(self):
-        episode_size = 2500
+        episode_size = 25000
         step = 0
         actions = self.custom.actions()
         done = False
