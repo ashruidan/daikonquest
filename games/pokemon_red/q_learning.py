@@ -49,23 +49,26 @@ class Custom:
         self.current = (e, y, x)
         return e * (89 * 123) + y * 123 + x
 
-    def reward(self, state):
-        reward = -1
+    def reward(self, state, p_a):
         done = False
+        if self.battle[0] != 0:
+            return (0,done)
+        reward = -1
         e,y,x = self.current
         if self.previous == None:
             self.checkpoint = (y,x)
             self.breadcrumb = (y,x)
             self.last = state
+            self.previous = self.current
             return (reward, done)
-        if self.previous != self.current:
+        if self.previous[0] != self.current[0]:
             self.checkpoint = (y,x)
             self.breadcrumb = (y,x)
             self.last = state
             reward += 1000
-        pe,py,px,pa = self.previous
-        if (e,y,x) == (pe,py,px) and pa != 'a':
-            reward -= 10
+        pe,py,px = self.previous
+        if (e,y,x) == (pe,py,px) and p_a != 'a':
+            reward -= 1
         current_distance = abs(self.checkpoint[0] - self.breadcrumb[0]) + abs(self.checkpoint[1] - self.breadcrumb[1])
         if current_distance > self.distance:
             self.distance = current_distance
@@ -73,6 +76,7 @@ class Custom:
             self.last = state
         if (x == 55 or x == 56 or x == 57) and y == 7:
             done = True
+        self.previous = self.current
         return (reward,done)
 
     def actions(self):
@@ -82,11 +86,14 @@ class Custom:
         actions.remove(Actions.SELECT.value)
         return actions
 
-    def algorithm(self, step):
+    def algorithm(self, step, eval):
         if self.batch < self.current[0]:
             self.batch = self.current[0]
         ratio = (self.current[0] + 1) / (self.batch + 1)
-        epsilon = max(0.1, (self.distance + 1) / (step + 1)) > np.random.random()
+        if not eval:
+            epsilon = max(0.1, (self.distance + 1) / (step /10 + 1)) > np.random.random()
+        else:
+            epsilon = True
         return (ratio, epsilon, self.last)
 
     def custom(self, a):

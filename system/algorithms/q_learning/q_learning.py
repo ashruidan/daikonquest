@@ -29,6 +29,10 @@ class Algorithm:
         self.history.append((state, action))
         return action
 
+    def debug(self, data):
+        s = data[0]
+        print(self.actions[np.argmax(self.Q[s])])
+
     def last(self, data, done):
         checkpoint = data[5]
         i = len(self.history) - 1
@@ -53,6 +57,6 @@ class Algorithm:
                 value = np.argmax(self.Q[state]) + done * 10000
             else:
                 a = self.actions.index(action)
-                self.Q[state][a] += 0.1 * value
+                self.Q[state][a] += 0.8 * value
                 value = self.Q[state][a]
         self.history.clear()

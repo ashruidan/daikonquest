@@ -18,3 +18,6 @@ class Agent:
 
     def last(self, data, done):
         return self.algorithm.last(data, done)
+
+    def debug(self, data):
+        self.algorithm.debug(data)

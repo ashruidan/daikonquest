@@ -8,7 +8,7 @@ class Environment:
         self.headless = args.headless
         self.human = args.human
         self.train = args.training
-        self.batch = 0
+        self.eval = args.evaluation
 
         game = args.game
         algorithm = args.algorithm
@@ -17,6 +17,7 @@ class Environment:
         rom = f"games/{game}/{game}.gb"
         # START_SAVE PATH
         start_save = f"games/{game}/start.save"
+        self.start_save = start_save
         # ALGORITHM_IMPORT PATH
         algorithm_import = f"system.algorithms.{algorithm}"
         # MODEL PATH
@@ -54,7 +55,7 @@ class Environment:
 
     def run(self):
         try:
-            self.episode()
+            self.batch()
         except KeyboardInterrupt:
             print("Program interrupted. Stopping emulator...")
         finally:
@@ -71,7 +72,7 @@ class Environment:
         episode = 0
         while episode < batch_size:
             self.episode()
-            load(start_save, "rb", self.emulator.load_state)
+            load(self.start_save, "rb", self.emulator.load_state)
             episode += 1
 
     def episode(self):
@@ -83,14 +84,16 @@ class Environment:
         while not done and step < episode_size:
             state = self.custom.state(self.emulator.memory)
             custom = self.custom.custom(a)
-            reward,done = self.custom.reward(state)
-            algorithm = self.custom.algorithm(step)
+            reward,done = self.custom.reward(state, a)
+            algorithm = self.custom.algorithm(step, self.eval)
             data = (state, reward, actions) + algorithm #(ratio, epsilon, checkpoint)
             if not self.human:
                 if self.train or self.headless:
                     self.agent.train(data)
                 a = self.agent.step(data,custom)
                 self.controller_input(a)
+            else:
+                self.agent.debug(data)
             self.emulator.tick()
             step += 1
         self.agent.last(data, done)
