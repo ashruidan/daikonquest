@@ -9,32 +9,27 @@ class Algorithm:
     def stop(self):
         return self.Q
 
-    def train(self, data):
-        state, reward, _, ratio,_,_ = data
+    def train(self, state, reward, lr):
         if len(self.history) == 0:
             return
         p_s,p_a = self.history[-1]
-        lr = 0.8 - 0.7 * min(1,-2*ratio+2)
         g = 0.9
         action = np.argmax(self.Q[state])
         a = self.actions.index(p_a)
         self.Q[p_s][a] += lr * (reward + g * action - self.Q[p_s][a])
 
-    def step(self, data):
-        state, _, actions, _, epsilon,_ = data
+    def step(self, state, epsilon):
         if epsilon:
-            action = actions[np.argmax(self.Q[state])]
+            action = self.actions[np.argmax(self.Q[state])]
         else:
-            action = np.random.choice(actions, 1)[0]
+            action = np.random.choice(self.actions, 1)[0]
         self.history.append((state, action))
         return action
 
-    def debug(self, data):
-        s = data[0]
-        print(self.actions[np.argmax(self.Q[s])])
+    def debug(self, state):
+        print(self.actions[np.argmax(self.Q[state])])
 
-    def last(self, data, done):
-        checkpoint = data[5]
+    def last(self, checkpoint, done):
         i = len(self.history) - 1
         for index, (s,a) in enumerate(reversed(self.history)):
             if s == checkpoint:

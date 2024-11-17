@@ -1,99 +1,70 @@
 import os, importlib, numpy as np
 from pyboy import PyBoy
-from utils import load, load_pickle, save_pickle
-from .agent import Agent
+from utils import load, load_pickle
+from .actions import Actions
+from games.pokemon_red.global_map import local_to_global
 
 class Environment:
-    def __init__(self, args):
-        self.headless = args.headless
-        self.human = args.human
-        self.train = args.training
-        self.eval = args.evaluation
+    def __init__(self, algorithm, game, headless):
+        # PATH
+        custom_path = f"games.{game}.{algorithm}"
+        rom_path = f"games/{game}/{game}.gb"
+        agent_path = f"system.algorithms.{algorithm}"
+        self.start_save_path = f"games/{game}/start.save"
+        model_path = f"games/{game}/{algorithm}.model"
 
-        game = args.game
-        algorithm = args.algorithm
-
-        # ROM PATH
-        rom = f"games/{game}/{game}.gb"
-        # START_SAVE PATH
-        start_save = f"games/{game}/start.save"
-        self.start_save = start_save
-        # ALGORITHM_IMPORT PATH
-        algorithm_import = f"system.algorithms.{algorithm}"
-        # MODEL PATH
-        self.model = f"games/{game}/{algorithm}.model"
-        # CUSTOM_IMPORT PATH
-        custom_import = f"games.{game}.{algorithm}"
-
-        self.init_emulator(rom, start_save, args.headless)
-        self.init_game(custom_import)
-        self.init_agent(algorithm_import, self.model)
-
-    def init_emulator(self, rom, start_save, headless):
-        win, spd = ("null", 0) if headless else ("SDL2", 5)
-        self.emulator = PyBoy(rom, window=win)
-        if not self.emulator:
-            raise RuntimeError("Failed to initialize PyBoy with the given ROM")
-        self.emulator.set_emulation_speed(spd)
-        load(start_save, "rb", self.emulator.load_state)
-
-    def init_game(self, custom):
-        m = importlib.import_module(custom)
-        self.custom = getattr(m,"Custom")()
-
-    def init_agent(self, algo_import, model_path):
-        model = None
+        # VARIABLE
+        if headless:
+            window = "null"
+            speed = 0
+        else:
+            window = "SDL2"
+            speed = 5
         if os.path.exists(model_path):
             model = load_pickle(model_path)
         else:
-            model = np.zeros((self.custom.model_size(), len(self.custom.actions())))
-        self.agent = Agent(algo_import, model, self.custom.actions())
+            model = np.zeros((self.custom.model_size(), len(Actions.list())))
+
+        # GAME
+        custom_import = importlib.import_module(custom_path)
+        self.custom = getattr(custom_import, "Custom")()
+
+        # EMULATOR
+        self.emulator = PyBoy(rom_path, window=window)
+        if not self.emulator:
+            raise RuntimeError("Failed to initialize PyBoy with the given ROM")
+        self.emulator.set_emulation_speed(speed)
+
+        # AGENT
+        agent_import = importlib.import_module(agent_path)
+        self.agent = getattr(agent_import,"Algorithm")(model, Actions.list())
 
     def stop(self):
-        save_pickle(self.model, self.agent.stop())
-        self.emulator.stop(False)
+        return 0
 
-    def run(self):
+    def run(self, train, human):
         try:
-            self.batch()
+            # Batch
+            while True:
+                # Episode
+                load(self.start_save_path, "rb", self.emulator.load_state)
+                while True:
+                    action = self.custom.custom()
+                    if action == None:
+                        e = self.emulator.memory[0xD74E]
+                        e = e // 2 + e % 2
+                        y, x = local_to_global(self.emulator.memory[0xD361],self.emulator.memory[0xD362],self.emulator.memory[0xD35E])
+                        y -= 267
+                        x -= 36
+                        action = self.agent.step(e * (89 * 123) + y * 123 + x,0.75 > np.random.random())
+                    self.emulator.button_press(action)
+                    self.emulator.tick(20)
+                    self.emulator.button_release(action)
+                    self.emulator.tick(2)
+                    self.emulator.tick()
         except KeyboardInterrupt:
             print("Program interrupted. Stopping emulator...")
         finally:
             self.stop()
 
-    def controller_input(self, input):
-        self.emulator.button_press(input)
-        self.emulator.tick(20)
-        self.emulator.button_release(input)
-        self.emulator.tick(2)
-
-    def batch(self):
-        batch_size = 100
-        episode = 0
-        while episode < batch_size:
-            self.episode()
-            load(self.start_save, "rb", self.emulator.load_state)
-            episode += 1
-
-    def episode(self):
-        episode_size = 25000
-        step = 0
-        actions = self.custom.actions()
-        done = False
-        a = None
-        while not done and step < episode_size:
-            state = self.custom.state(self.emulator.memory)
-            custom = self.custom.custom(a)
-            reward,done = self.custom.reward(state, a)
-            algorithm = self.custom.algorithm(step, self.eval)
-            data = (state, reward, actions) + algorithm #(ratio, epsilon, checkpoint)
-            if not self.human:
-                if self.train or self.headless:
-                    self.agent.train(data)
-                a = self.agent.step(data,custom)
-                self.controller_input(a)
-            else:
-                self.agent.debug(data)
-            self.emulator.tick()
-            step += 1
-        self.agent.last(data, done)
+#         lr = 0.8 - 0.7 * min(1,-2*ratio+2)
