@@ -6,9 +6,18 @@ def argument_list(path):
         if os.path.isdir(os.path.join(path, f))
     ]
 
-def parse_arguments():
+def parse_arguments(games, agents):
     parser = argparse.ArgumentParser(
-        description="Run an AI to play any GameBoy game from a selected list"
+        description="Run an Agent to play any GameBoy game from a selected list"
+    )
+    parser.add_argument(
+        "-game", "--game", help="Select the game to play",
+        choices=argument_list(games), required=True
+    )
+    parser.add_argument(
+        "-agent", "--agent",
+        help="Select the agent with specific algorithm",
+        choices=argument_list(agents), required=True
     )
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument(
@@ -22,18 +31,5 @@ def parse_arguments():
     )
     mode.add_argument(
         "-eval","--evaluation", action="store_true", help="Run Evaluation mode"
-    )
-
-    # GAME LIST PATH
-    parser.add_argument(
-        "-game", "--game", help="Select the game to play",
-        choices=argument_list("./games"), required=True
-    )
-
-    # ALGORITHM LIST PATH
-    parser.add_argument(
-        "-algo", "--algorithm", 
-        help="Select the algorithm that will be used by agent",
-        choices=argument_list("./system/algorithms"), required=True
     )
     return parser.parse_args()

@@ -1,6 +1,6 @@
 import numpy as np
 
-class Algorithm:
+class Agent:
     def __init__(self, model, actions):
         self.Q = model
         self.history = []
@@ -12,22 +12,20 @@ class Algorithm:
     def train(self, state, reward, lr):
         if len(self.history) == 0:
             return
-        p_s,p_a = self.history[-1]
+        s,a = self.history[-1]
         g = 0.9
         action = np.argmax(self.Q[state])
-        a = self.actions.index(p_a)
-        self.Q[p_s][a] += lr * (reward + g * action - self.Q[p_s][a])
+        a = self.actions.index(a)
+        self.Q[s][a] += lr * (reward + g * action - self.Q[s][a])
 
     def step(self, state, epsilon):
         if epsilon:
-            action = self.actions[np.argmax(self.Q[state])]
+            i = np.random.choice(np.flatnonzero(np.isclose(self.Q[state],np.max(self.Q[state]))))
+            action = self.actions[i]
         else:
             action = np.random.choice(self.actions, 1)[0]
         self.history.append((state, action))
         return action
-
-    def debug(self, state):
-        print(self.actions[np.argmax(self.Q[state])])
 
     def last(self, checkpoint, done):
         i = len(self.history) - 1
